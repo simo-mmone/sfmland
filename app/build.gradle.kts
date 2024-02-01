@@ -9,6 +9,18 @@ plugins {
     id("com.android.application")
 }
 
+fun getEnv(key: String): String {
+    val envFile = file(".env")
+    if (envFile.exists()) {
+        val envs = envFile.readLines().associate { 
+            val (key, value) = it.split("=")
+            key to value 
+        }
+        return envs[key] ?: ""
+    }
+    return ""
+}
+
 android {
     namespace = "org.sfmldev.android"
     ndkVersion = NDK_VERSION
@@ -29,10 +41,21 @@ android {
             }
         }
     }
+    signingConfigs {
+        create("release") {
+            // Replace with your signing configuration details
+            storeFile = file("release.keystore")
+            storePassword = getEnv("STORE_PASSWORD")
+            keyAlias = "sample"
+            keyPassword = getEnv("KEY_PASSWORD")
+        }
+        // You can add other signing configurations if needed
+    }
     buildTypes {
-        release {
+        getByName("release") {
             isMinifyEnabled = false
             proguardFiles(getDefaultProguardFile("proguard-android.txt"), "proguard-rules.pro")
+            signingConfig = signingConfigs.getByName("release")
         }
     }
     externalNativeBuild {
