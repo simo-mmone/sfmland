@@ -8,3 +8,4 @@ app/.cxx
 app/.externalNativeBuild
 app/src/main/obj
 app/.env
+app/src/main/bin

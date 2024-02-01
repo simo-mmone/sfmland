@@ -2,6 +2,7 @@ cmake_minimum_required(VERSION 3.22)
 project(sfml-example CXX)
 
 set(SFML_ROOT "${CMAKE_ANDROID_NDK}/sources/third_party/sfml/lib/${CMAKE_ANDROID_ARCH_ABI}/cmake/SFML")
+set(ANDROID TRUE)
 
 # Create the libsfml-example.so library that contains the application's c++ code
 add_library(sfml-example SHARED main.cpp)

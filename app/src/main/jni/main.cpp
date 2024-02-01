@@ -1,104 +1,41 @@
 #include <SFML/Graphics.hpp>
-
 #include <SFML/Audio.hpp>
-
 #include <SFML/Network.hpp>
-
 #include <SFML/Window.hpp>
-
 #include <SFML/System.hpp>
 
-// Do we want to showcase direct JNI/NDK interaction?
-// Undefine this to get real cross-platform code.
-// Uncomment this to try JNI access; this seems to be broken in latest NDKs
-//#define USE_JNI
-
-#if defined(USE_JNI)
-// These headers are only needed for direct NDK/JDK interaction
-#include <android/native_activity.h>
-#include <jni.h>
-
-// Since we want to get the native activity from SFML, we'll have to use an
-// extra header here:
-#include <SFML/System/NativeActivity.hpp>
-
-// NDK/JNI sub example - call Java code from native code
-int vibrate(sf::Time duration)
-{
-    // First we'll need the native activity handle
-    ANativeActivity* activity = sf::getNativeActivity();
-
-    // Retrieve the JVM and JNI environment
-    JavaVM* vm  = activity->vm;
-    JNIEnv* env = activity->env;
-
-    // First, attach this thread to the main thread
-    JavaVMAttachArgs attachargs;
-    attachargs.version = JNI_VERSION_1_6;
-    attachargs.name    = "NativeThread";
-    attachargs.group   = nullptr;
-    jint res           = vm->AttachCurrentThread(&env, &attachargs);
-
-    if (res == JNI_ERR)
-        return EXIT_FAILURE;
-
-    // Retrieve class information
-    jclass natact  = env->FindClass("android/app/NativeActivity");
-    jclass context = env->FindClass("android/content/Context");
-
-    // Get the value of a constant
-    jfieldID fid    = env->GetStaticFieldID(context, "VIBRATOR_SERVICE", "Ljava/lang/String;");
-    jobject  svcstr = env->GetStaticObjectField(context, fid);
-
-    // Get the method 'getSystemService' and call it
-    jmethodID getss   = env->GetMethodID(natact, "getSystemService", "(Ljava/lang/String;)Ljava/lang/Object;");
-    jobject   vib_obj = env->CallObjectMethod(activity->clazz, getss, svcstr);
-
-    // Get the object's class and retrieve the member name
-    jclass    vib_cls = env->GetObjectClass(vib_obj);
-    jmethodID vibrate = env->GetMethodID(vib_cls, "vibrate", "(J)V");
-
-    // Determine the timeframe
-    jlong length = duration.asMilliseconds();
-
-    // Bzzz!
-    env->CallVoidMethod(vib_obj, vibrate, length);
-
-    // Free references
-    env->DeleteLocalRef(vib_obj);
-    env->DeleteLocalRef(vib_cls);
-    env->DeleteLocalRef(svcstr);
-    env->DeleteLocalRef(context);
-    env->DeleteLocalRef(natact);
-
-    // Detach thread again
-    vm->DetachCurrentThread();
-}
+#ifdef ANDROID
+#include <android/log.h>
 #endif
 
-// This is the actual Android example. You don't have to write any platform
-// specific code, unless you want to use things not directly exposed.
-// ('vibrate()' in this example; undefine 'USE_JNI' above to disable it)
 int main(int argc, char* argv[])
 {
-    sf::VideoMode screen(sf::VideoMode::getDesktopMode());
+    auto videoMode = sf::VideoMode(sf::Vector2u(360, 640));
+#ifdef ANDROID
+    videoMode = sf::VideoMode::getDesktopMode();
+#endif
 
+    sf::VideoMode screen(videoMode);
     sf::RenderWindow window(screen, "");
     window.setFramerateLimit(30);
 
-    sf::Texture texture;
-    if (!texture.loadFromFile("image.png"))
-        return EXIT_FAILURE;
-
-    sf::Sprite image(texture);
-    image.setPosition(sf::Vector2f(screen.size) / 2.f);
-    image.setOrigin(sf::Vector2f(texture.getSize()) / 2.f);
+    auto fontPath = "assets/tuffy.ttf";
+#ifdef ANDROID
+        __android_log_print(ANDROID_LOG_INFO, "YourApp", "HERE I AM! ALIVE");
+#endif
 
     sf::Font font;
-    if (!font.loadFromFile("tuffy.ttf"))
+    auto fontPossiblePaths = {"tuffy.ttf", "assets/tuffy.ttf", "../assets/tuffy.ttf"};
+    auto isFontLoaded = false;
+    for (auto path : fontPossiblePaths)
+    {
+        isFontLoaded = font.loadFromFile(path);
+    }
+    
+    if (!isFontLoaded)
         return EXIT_FAILURE;
 
-    sf::Text text(font, "Tap anywhere to move the logo.", 64);
+    sf::Text text(font, "Hello", 64);
     text.setFillColor(sf::Color::Black);
     text.setPosition({10, 10});
 
@@ -147,10 +84,7 @@ int main(int argc, char* argv[])
                 case sf::Event::TouchBegan:
                     if (event.touch.finger == 0)
                     {
-                        image.setPosition({static_cast<float>(event.touch.x), static_cast<float>(event.touch.y)});
-#if defined(USE_JNI)
-                        vibrate(sf::milliseconds(10));
-#endif
+                        // image.setPosition({static_cast<float>(event.touch.x), static_cast<float>(event.touch.y)});
                     }
                     break;
                 default:
@@ -161,7 +95,7 @@ int main(int argc, char* argv[])
         if (active)
         {
             window.clear(background);
-            window.draw(image);
+            // window.draw(image);
             window.draw(text);
             window.display();
         }
